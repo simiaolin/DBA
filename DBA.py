@@ -35,9 +35,9 @@ def performDBA(series, n_iterations=10):
     center = series[medoid_ind]
 
     for i in range(0,n_iterations):
-        center = DBA_update(center, series, cost_mat, path_mat, delta_mat)
+        center, variance = DBA_update(center, series, cost_mat, path_mat, delta_mat)
 
-    return center
+    return center, variance
 
 def approximate_medoid_index(series,cost_mat,delta_mat):
     if len(series)<=50:
@@ -96,9 +96,10 @@ def fill_delta_mat_dtw(center, s, delta_mat):
 
 def DBA_update(center, series, cost_mat, path_mat, delta_mat):
     options_argmin = [(-1, -1), (0, -1), (-1, 0)]
-    updated_center = np.zeros(center.shape)
-    n_elements = np.array(np.zeros(center.shape), dtype=int)
     center_length = len(center)
+    adjusted_series_mat = np.zeros((len(series), center_length))
+    adjusted_series_weight_mat = np.zeros((len(series), center_length), dtype=int)            #be careful when defining the 2-dimensional matrix
+    current_series_idx = 0
     for s in series:
         s_len = len(s)
         fill_delta_mat_dtw(center, s, delta_mat)
@@ -137,16 +138,20 @@ def DBA_update(center, series, cost_mat, path_mat, delta_mat):
         j = s_len-1
 
         while(path_mat[i, j] != -1):
-            updated_center[i] += s[j]
-            n_elements[i] += 1
+            adjusted_series_mat[current_series_idx, i] += s[j]
+            adjusted_series_weight_mat[current_series_idx, i] += 1
             move = options_argmin[path_mat[i, j]]
             i += move[0]
             j += move[1]
         assert(i == 0 and j == 0)
-        updated_center[i] += s[j]
-        n_elements[i] += 1
+        adjusted_series_mat[current_series_idx, i] += s[j]
+        adjusted_series_weight_mat[current_series_idx, i] += 1
+        current_series_idx += 1
 
-    return np.divide(updated_center, n_elements)
+    updated_weight = np.sum(adjusted_series_weight_mat, 0)
+    updated_center = np.divide(np.sum(adjusted_series_mat * adjusted_series_weight_mat, 0) + center, updated_weight)
+    updated_variance = np.divide(np.sum(np.power(adjusted_series_mat - center, 2) * adjusted_series_weight_mat, 0), updated_weight)
+    return updated_center, updated_variance
 
 def main():
     #generating synthetic data
