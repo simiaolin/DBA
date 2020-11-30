@@ -138,13 +138,13 @@ def DBA_update(center, series, cost_mat, path_mat, delta_mat):
         j = s_len-1
 
         while(path_mat[i, j] != -1):
-            adjusted_series_mat[current_series_idx, i] += s[j]
+            adjusted_series_mat[current_series_idx, i] = s[j]
             adjusted_series_weight_mat[current_series_idx, i] += 1
             move = options_argmin[path_mat[i, j]]
             i += move[0]
             j += move[1]
         assert(i == 0 and j == 0)
-        adjusted_series_mat[current_series_idx, i] += s[j]
+        adjusted_series_mat[current_series_idx, i] = s[j]
         adjusted_series_weight_mat[current_series_idx, i] += 1
         current_series_idx += 1
 
