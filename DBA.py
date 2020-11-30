@@ -149,7 +149,7 @@ def DBA_update(center, series, cost_mat, path_mat, delta_mat):
         current_series_idx += 1
 
     updated_weight = np.sum(adjusted_series_weight_mat, 0)
-    updated_center = np.divide(np.sum(adjusted_series_mat * adjusted_series_weight_mat, 0) + center, updated_weight)
+    updated_center = np.divide(np.sum(adjusted_series_mat * adjusted_series_weight_mat, 0), updated_weight)
     updated_variance = np.divide(np.sum(np.power(adjusted_series_mat - center, 2) * adjusted_series_weight_mat, 0), updated_weight)
     return updated_center, updated_variance
 
