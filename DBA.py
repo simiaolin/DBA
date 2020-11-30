@@ -18,6 +18,7 @@
 from __future__ import division
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 from functools import reduce
 
 
@@ -33,10 +34,23 @@ def performDBA(series, n_iterations=10):
 
     medoid_ind = approximate_medoid_index(series,cost_mat,delta_mat)
     center = series[medoid_ind]
+    x = np.arange(1, 97)
+    color_arr = cm.rainbow(np.linspace(0, 1, 10))
+    colors = iter(color_arr)
+
+    fig = plt.figure()
+    ax1 = fig.add_subplot(121)
+    ax2 = fig.add_subplot(122)
+    ax1.set_title('center Plot')
+    ax2.set_title('variance Plot')
+    plt.xlabel('X')
+    plt.ylabel('Y')
 
     for i in range(0,n_iterations):
+        cur_color = next(colors)
         center, variance = DBA_update(center, series, cost_mat, path_mat, delta_mat)
-
+        ax1.plot(x, center, color=cur_color)
+        ax2.plot(x, variance, color=cur_color)
     return center, variance
 
 def approximate_medoid_index(series,cost_mat,delta_mat):
@@ -99,6 +113,7 @@ def DBA_update(center, series, cost_mat, path_mat, delta_mat):
     center_length = len(center)
     adjusted_series_mat = np.zeros((len(series), center_length))
     adjusted_series_weight_mat = np.zeros((len(series), center_length), dtype=int)            #be careful when defining the 2-dimensional matrix
+    series_mapping_mat = np.zeros((len(series), center_length), dtype=int)
     current_series_idx = 0
     for s in series:
         s_len = len(s)
@@ -138,20 +153,47 @@ def DBA_update(center, series, cost_mat, path_mat, delta_mat):
         j = s_len-1
 
         while(path_mat[i, j] != -1):
-            adjusted_series_mat[current_series_idx, i] = s[j]
+            if (adjusted_series_weight_mat[current_series_idx, i] == 0):
+                adjusted_series_mat[current_series_idx, i] = s[j]
+                series_mapping_mat[current_series_idx, i] = j
             adjusted_series_weight_mat[current_series_idx, i] += 1
             move = options_argmin[path_mat[i, j]]
             i += move[0]
             j += move[1]
         assert(i == 0 and j == 0)
-        adjusted_series_mat[current_series_idx, i] = s[j]
+        if (adjusted_series_weight_mat[current_series_idx, i] == 0):
+            adjusted_series_mat[current_series_idx, i] = s[j]
+            series_mapping_mat[current_series_idx, i] = j
         adjusted_series_weight_mat[current_series_idx, i] += 1
         current_series_idx += 1
 
     updated_weight = np.sum(adjusted_series_weight_mat, 0)
     updated_center = np.divide(np.sum(adjusted_series_mat * adjusted_series_weight_mat, 0), updated_weight)
-    updated_variance = np.divide(np.sum(np.power(adjusted_series_mat - center, 2) * adjusted_series_weight_mat, 0), updated_weight)
+    # updated_variance = np.divide(np.sum(np.power(adjusted_series_mat - updated_center, 2) * adjusted_series_weight_mat, 0), updated_weight)
+    updated_variance = calculateVariance(adjusted_series_weight_mat, series_mapping_mat, updated_center, updated_weight)
     return updated_center, updated_variance
+
+
+def calculateVariance(adjusted_series_weight_mat, series_mapping_mat, updated_center, updated_weight):
+    delta_mat = series_mapping_mat - np.arange(0, series_mapping_mat.shape[1])
+    delta_square_mat = calVariance(delta_mat, adjusted_series_weight_mat)
+    mode = 1
+    if (mode == 0):
+        return np.divide(np.sum(delta_square_mat, 0), updated_weight)                 #power of delta
+    else:
+        return np.sqrt(np.divide(np.sum(delta_square_mat, 0), updated_weight))                 #square of the power of delta
+
+
+def calVariance(delta_mat, adjusted_series_weight_mat):
+    res = np.zeros(delta_mat.shape)
+    for i in np.arange(0, res.shape[0]):
+        for j in np.arange(0, res.shape[1]):
+            res[i, j] = calCurrentVariance(delta_mat[i,j], adjusted_series_weight_mat[i,j])
+    return res
+
+def calCurrentVariance(j_start_delta, count):
+    return np.sum(np.power(np.ones(count, dtype=int) * j_start_delta - np.arange(0, count), 2))
+
 
 def main():
     #generating synthetic data
@@ -190,5 +232,13 @@ def main():
     plt.plot(range(0,len(average_series)), average_series)
     plt.show()
 
-if __name__== "__main__":
-    main()
+
+def main2():
+    adjusted_series_weight_mat = [[1,2], [3,4]]
+    series_mapping_mat = [[7,9], [19,24]]
+    res = calCurrentVariance(adjusted_series_weight_mat, series_mapping_mat)
+    # res = out(adjusted_series_weight_mat, series_mapping_mat)
+    res
+
+if __name__ == '__main__':
+    main2()
