@@ -35,23 +35,28 @@ def performDBA(series, n_iterations=10):
     medoid_ind = approximate_medoid_index(series,cost_mat,delta_mat)
     center = series[medoid_ind]
     x = np.arange(1, 97)
-    color_arr = cm.rainbow(np.linspace(0, 1, 10))
-    colors = iter(color_arr)
+    # color_arr = cm.rainbow(np.linspace(0, 1, n_iterations))
+    # colors = iter(color_arr)
 
-    fig = plt.figure()
-    ax1 = fig.add_subplot(121)
-    ax2 = fig.add_subplot(122)
-    ax1.set_title('center Plot')
-    ax2.set_title('variance Plot')
-    plt.xlabel('X')
-    plt.ylabel('Y')
+    # plot_or_not = False
+    # if (plot_or_not):
+    #     fig = plt.figure()
+    #     ax1 = fig.add_subplot(121)
+    #     ax2 = fig.add_subplot(122)
+    #     ax1.set_title('center Plot')
+    #     ax2.set_title('variance Plot')
+    #     plt.xlabel('X')
+    #     plt.ylabel('Y')
 
     for i in range(0,n_iterations):
-        cur_color = next(colors)
-        center, variance = DBA_update(center, series, cost_mat, path_mat, delta_mat)
-        ax1.plot(x, center, color=cur_color)
-        ax2.plot(x, variance, color=cur_color)
-    return center, variance
+        # cur_color = next(colors)
+        center, dtw_horizontal_var, dtw_vertical_var, normal_vertical_var = DBA_update(center, series, cost_mat, path_mat, delta_mat)
+        # if (plot_or_not):
+            # ax1.plot(x, center, color=cur_color)
+            # ax2.plot(x, dtw_horizontal_var, color=cur_color)
+            # ax3.plot(x, dtw_vertical_var, colors=cur_color)
+            # ax4.plot(x, normal_vertical_var, colors=cur_color)
+    return center, dtw_horizontal_var, dtw_vertical_var, normal_vertical_var
 
 def approximate_medoid_index(series,cost_mat,delta_mat):
     if len(series)<=50:
@@ -169,19 +174,19 @@ def DBA_update(center, series, cost_mat, path_mat, delta_mat):
 
     updated_weight = np.sum(adjusted_series_weight_mat, 0)
     updated_center = np.divide(np.sum(adjusted_series_mat * adjusted_series_weight_mat, 0), updated_weight)
-    # updated_variance = np.divide(np.sum(np.power(adjusted_series_mat - updated_center, 2) * adjusted_series_weight_mat, 0), updated_weight)
-    updated_variance = calculateVariance(adjusted_series_weight_mat, series_mapping_mat, updated_center, updated_weight)
-    return updated_center, updated_variance
+    dtw_vertical_variance = np.sqrt(np.divide(np.sum(np.power(adjusted_series_mat - updated_center, 2) * adjusted_series_weight_mat, 0), updated_weight))
+    dtw_horizontal_variance = calculateVariance(adjusted_series_weight_mat, series_mapping_mat, updated_center, updated_weight)
+    normal_vertical_variance = np.sqrt(np.divide(np.sum(np.power(series - updated_center, 2), 0), len(series)))
+    return updated_center, dtw_horizontal_variance, dtw_vertical_variance, normal_vertical_variance
 
 
 def calculateVariance(adjusted_series_weight_mat, series_mapping_mat, updated_center, updated_weight):
     delta_mat = series_mapping_mat - np.arange(0, series_mapping_mat.shape[1])
+    addup_variance = np.frompyfunc(calCurrentVariance, 2, 1)
+    # delta_square_mat = addup_variance(delta_mat, adjusted_series_weight_mat)
     delta_square_mat = calVariance(delta_mat, adjusted_series_weight_mat)
-    mode = 1
-    if (mode == 0):
-        return np.divide(np.sum(delta_square_mat, 0), updated_weight)                 #power of delta
-    else:
-        return np.sqrt(np.divide(np.sum(delta_square_mat, 0), updated_weight))                 #square of the power of delta
+    deviation = np.divide(np.sum(delta_square_mat, 0), updated_weight)
+    return np.sqrt(deviation)
 
 
 def calVariance(delta_mat, adjusted_series_weight_mat):
