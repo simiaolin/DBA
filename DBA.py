@@ -178,29 +178,46 @@ def DBA_update(center, series, cost_mat, path_mat, delta_mat):
 
     updated_weight = np.sum(adjusted_series_weight_mat, 0)
     updated_center = np.divide(np.sum(adjusted_series_mat * adjusted_series_weight_mat, 0), updated_weight)
-    dtw_vertical_variance = np.sqrt(np.divide(np.sum(np.power(adjusted_series_mat - updated_center, 2) * adjusted_series_weight_mat, 0), updated_weight))
-    dtw_horizontal_variance = calculateVariance(adjusted_series_weight_mat, series_mapping_mat, updated_center, updated_weight)
+    # dtw_vertical_variance = np.sqrt(np.divide(np.sum(np.power(adjusted_series_mat - updated_center, 2) * adjusted_series_weight_mat, 0), updated_weight))
+    dtw_vertical_variance = calculateVerticalVariance(series_mapping_mat, adjusted_series_weight_mat, updated_weight, updated_center, series)
+    dtw_horizontal_variance = calculateHorizontalVariance(adjusted_series_weight_mat, series_mapping_mat, updated_center, updated_weight)
     normal_vertical_variance = np.sqrt(np.divide(np.sum(np.power(series - updated_center, 2), 0), len(series)))
     return updated_center, dtw_horizontal_variance, dtw_vertical_variance, normal_vertical_variance, adjusted_series_mat, series_mapping_mat, adjusted_series_weight_mat
 
+def calculateVerticalVariance(series_mapping_mat, adjusted_series_weight_mat, updated_weight, updated_center, series):
+    res = np.zeros(series_mapping_mat.shape)
+    for i in np.arange(0, res.shape[0]):
+        for j in np.arange(0, res.shape[1]):
+            res[i, j] = calSingleVerticalVariance(i, j, series_mapping_mat, adjusted_series_weight_mat, updated_center, series)
+    return np.sqrt(np.divide(np.sum(res, 0), updated_weight))
 
-def calculateVariance(adjusted_series_weight_mat, series_mapping_mat, updated_center, updated_weight):
+def calculateHorizontalVariance(adjusted_series_weight_mat, series_mapping_mat, updated_center, updated_weight):
     delta_mat = series_mapping_mat - np.arange(0, series_mapping_mat.shape[1])
-    addup_variance = np.frompyfunc(calCurrentVariance, 2, 1)
+    addup_variance = np.frompyfunc(calSingleHorizontalVariance, 2, 1)
     # delta_square_mat = addup_variance(delta_mat, adjusted_series_weight_mat)
-    delta_square_mat = calVariance(delta_mat, adjusted_series_weight_mat)
+    delta_square_mat = getHorizontalDeltaMat(delta_mat, adjusted_series_weight_mat)
     deviation = np.divide(np.sum(delta_square_mat, 0), updated_weight)
     return np.sqrt(deviation)
 
 
-def calVariance(delta_mat, adjusted_series_weight_mat):
+def getHorizontalDeltaMat(delta_mat, adjusted_series_weight_mat):
     res = np.zeros(delta_mat.shape)
     for i in np.arange(0, res.shape[0]):
         for j in np.arange(0, res.shape[1]):
-            res[i, j] = calCurrentVariance(delta_mat[i,j], adjusted_series_weight_mat[i,j])
+            res[i, j] = calSingleHorizontalVariance(delta_mat[i, j], adjusted_series_weight_mat[i, j])
     return res
 
-def calCurrentVariance(j_start_delta, count):
+
+def calSingleVerticalVariance(series_index, index_of_center, series_mapping_mat, adjusted_series_weight_mat, updated_center, series):
+    res = 0
+    begin_mapping_j = series_mapping_mat[series_index, index_of_center] + 1
+    end_mapping_j = begin_mapping_j - adjusted_series_weight_mat[series_index,index_of_center] + 1
+    for i in np.arange(end_mapping_j, begin_mapping_j):
+        res += np.power(series[series_index][i] - updated_center[index_of_center],  2)
+
+    return res
+
+def calSingleHorizontalVariance(j_start_delta, count):
     return np.sum(np.power(np.ones(count, dtype=int) * j_start_delta - np.arange(0, count), 2))
 
 
@@ -245,7 +262,7 @@ def main():
 def main2():
     adjusted_series_weight_mat = [[1,2], [3,4]]
     series_mapping_mat = [[7,9], [19,24]]
-    res = calCurrentVariance(adjusted_series_weight_mat, series_mapping_mat)
+    res = calSingleHorizontalVariance(adjusted_series_weight_mat, series_mapping_mat)
     # res = out(adjusted_series_weight_mat, series_mapping_mat)
     res
 
