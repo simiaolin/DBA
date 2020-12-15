@@ -34,7 +34,7 @@ def performDBA(series, n_iterations=10):
 
     medoid_ind = approximate_medoid_index(series,cost_mat,delta_mat)
     center = series[medoid_ind]
-    x = np.arange(1, 97)
+    # x = np.arange(1, 97)
     # color_arr = cm.rainbow(np.linspace(0, 1, n_iterations))
     # colors = iter(color_arr)
 
