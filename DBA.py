@@ -50,13 +50,13 @@ def performDBA(series, n_iterations=10):
 
     for i in range(0,n_iterations):
         # cur_color = next(colors)
-        center, dtw_horizontal_var, dtw_vertical_var, normal_vertical_var, a, b, c = DBA_update(center, series, cost_mat, path_mat, delta_mat)
+        center, dtw_horizontal_var, dtw_vertical_var, normal_vertical_var, a, b, c, d = DBA_update(center, series, cost_mat, path_mat, delta_mat)
         # if (plot_or_not):
             # ax1.plot(x, center, color=cur_color)
             # ax2.plot(x, dtw_horizontal_var, color=cur_color)
             # ax3.plot(x, dtw_vertical_var, colors=cur_color)
             # ax4.plot(x, normal_vertical_var, colors=cur_color)
-    return center, dtw_horizontal_var, dtw_vertical_var, normal_vertical_var, a, b, c
+    return center, dtw_horizontal_var, dtw_vertical_var, normal_vertical_var, a, b, c, d
 
 def approximate_medoid_index(series,cost_mat,delta_mat):
     if len(series)<=50:
@@ -182,14 +182,22 @@ def DBA_update(center, series, cost_mat, path_mat, delta_mat):
     dtw_vertical_variance = calculateVerticalVariance(series_mapping_mat, adjusted_series_weight_mat, updated_weight, updated_center, series)
     dtw_horizontal_variance = calculateHorizontalVariance(adjusted_series_weight_mat, series_mapping_mat, updated_center, updated_weight)
     normal_vertical_variance = np.sqrt(np.divide(np.sum(np.power(series - updated_center, 2), 0), len(series)))
-    return updated_center, dtw_horizontal_variance, dtw_vertical_variance, normal_vertical_variance, adjusted_series_mat, series_mapping_mat, adjusted_series_weight_mat
+    dtw_special_vertical_variance = calculateVerticalVariance(series_mapping_mat, adjusted_series_weight_mat, updated_weight, updated_center, series, True)
+    return updated_center, dtw_horizontal_variance, dtw_vertical_variance, normal_vertical_variance, adjusted_series_mat, series_mapping_mat, adjusted_series_weight_mat, dtw_special_vertical_variance
 
-def calculateVerticalVariance(series_mapping_mat, adjusted_series_weight_mat, updated_weight, updated_center, series):
+def calculateVerticalVariance(series_mapping_mat, adjusted_series_weight_mat, updated_weight, updated_center, series, isSpecial=False):
     res = np.zeros(series_mapping_mat.shape)
     for i in np.arange(0, res.shape[0]):
         for j in np.arange(0, res.shape[1]):
-            res[i, j] = calSingleVerticalVariance(i, j, series_mapping_mat, adjusted_series_weight_mat, updated_center, series)
-    return np.sqrt(np.divide(np.sum(res, 0), updated_weight))
+            normalVariance = calSingleVerticalVariance(i, j, series_mapping_mat, adjusted_series_weight_mat, updated_center, series)
+            if (isSpecial):
+                res[i, j] = np.divide(normalVariance, adjusted_series_weight_mat[i][j])
+            else:
+                res[i, j] = normalVariance
+    if (isSpecial):
+        return np.sqrt(np.divide(np.sum(res, 0), res.shape[0]))
+    else:
+        return np.sqrt(np.divide(np.sum(res, 0), updated_weight))
 
 def calculateHorizontalVariance(adjusted_series_weight_mat, series_mapping_mat, updated_center, updated_weight):
     delta_mat = series_mapping_mat - np.arange(0, series_mapping_mat.shape[1])
