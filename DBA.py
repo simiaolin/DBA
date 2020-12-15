@@ -217,13 +217,15 @@ def getHorizontalDeltaMat(delta_mat, adjusted_series_weight_mat):
 
 
 def calSingleVerticalVariance(series_index, index_of_center, series_mapping_mat, adjusted_series_weight_mat, updated_center, series):
-    res = 0
-    begin_mapping_j = series_mapping_mat[series_index, index_of_center] + 1
-    end_mapping_j = begin_mapping_j - adjusted_series_weight_mat[series_index,index_of_center] + 1
-    for i in np.arange(end_mapping_j, begin_mapping_j):
-        res += np.power(series[series_index][i] - updated_center[index_of_center],  2)
-
+    begin, end = getStartAndEndMapping(series_mapping_mat, adjusted_series_weight_mat, series_index, index_of_center)
+    differnce = series[series_index][begin: end] - updated_center[index_of_center]
+    res = np.sum(np.power(differnce, 2))
     return res
+
+def getStartAndEndMapping(series_mapping_mat, adjusted_series_weight_mat, series_index, index_of_center) :
+    begin_mapping_j = series_mapping_mat[series_index, index_of_center] + 1
+    end_mapping_j = begin_mapping_j - adjusted_series_weight_mat[series_index, index_of_center]
+    return end_mapping_j, begin_mapping_j
 
 def calSingleHorizontalVariance(j_start_delta, count):
     return np.sum(np.power(np.ones(count, dtype=int) * j_start_delta - np.arange(0, count), 2))
