@@ -20,7 +20,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from functools import reduce
-
+import pandas as pd
+import datetime as dt
 
 __author__ ="Francois Petitjean"
 
@@ -59,19 +60,28 @@ def performDBA(series, n_iterations=10):
     return center, dtw_horizontal_var, dtw_vertical_var, normal_vertical_var, a, b, c, d
 
 def approximate_medoid_index(series,cost_mat,delta_mat):
+    dt1 = dt.datetime.now()
     if len(series)<=50:
         indices = range(0,len(series))
     else:
         indices = np.random.choice(range(0,len(series)),50,replace=False)
 
-    medoid_ind = -1
-    best_ss = 1e20
-    for index_candidate in indices:
-        candidate = series[index_candidate]
-        ss = sum_of_squares(candidate,series,cost_mat,delta_mat)
-        if(medoid_ind==-1 or ss<best_ss):
-            best_ss = ss
-            medoid_ind = index_candidate
+    #medoid_ind = -1
+    #best_ss = 1e20
+    # for index_candidate in indices:
+    #     candidate = series[index_candidate]
+    #     ss = sum_of_squares(candidate,series,cost_mat,delta_mat)
+    #     if(medoid_ind==-1 or ss<best_ss):
+    #         best_ss = ss
+    #         medoid_ind = index_candidate
+
+    ss_series = pd.Series(indices).apply(lambda idx: (idx, sum_of_squares(series[idx], series, cost_mat, delta_mat)))
+    medoid_ind, best_ss = reduce(lambda a, b: (a[0], a[1]) if a[1] < b[1] else (b[0], b[1]), ss_series)
+
+    dt2 = dt.datetime.now()
+    print("medoid "  + str(medoid_ind))
+    print("best_ss " + str(best_ss))
+    print("approximation use time " + str((dt2 - dt1).seconds))
     return medoid_ind
 
 def sum_of_squares(s,series,cost_mat,delta_mat):
