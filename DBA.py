@@ -18,7 +18,6 @@
 from __future__ import division
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.cm as cm
 from functools import reduce
 import pandas as pd
 import datetime as dt
@@ -49,7 +48,7 @@ def performDBA(series, n_iterations=10):
     #     plt.xlabel('X')
     #     plt.ylabel('Y')
 
-    for i in range(0,n_iterations):
+    for i in range(0, n_iterations):
         # cur_color = next(colors)
         center, dtw_horizontal_var, dtw_vertical_var, normal_vertical_var, a, b, c, d = DBA_update(center, series, cost_mat, path_mat, delta_mat)
         # if (plot_or_not):
@@ -211,11 +210,8 @@ def calculateVerticalVariance(series_mapping_mat, adjusted_series_weight_mat, up
 
 def calculateHorizontalVariance(adjusted_series_weight_mat, series_mapping_mat, updated_center, updated_weight):
     delta_mat = series_mapping_mat - np.arange(0, series_mapping_mat.shape[1])
-    addup_variance = np.frompyfunc(calSingleHorizontalVariance, 2, 1)
-    # delta_square_mat = addup_variance(delta_mat, adjusted_series_weight_mat)
     delta_square_mat = getHorizontalDeltaMat(delta_mat, adjusted_series_weight_mat)
-    deviation = np.divide(np.sum(delta_square_mat, 0), updated_weight)
-    return np.sqrt(deviation)
+    return np.sqrt(np.divide(np.sum(delta_square_mat, 0), updated_weight))
 
 
 def getHorizontalDeltaMat(delta_mat, adjusted_series_weight_mat):
